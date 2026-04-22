@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    body { background-color: #F5F5DC; font-family: sans-serif; overflow-x: hidden; }
+    .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .progress-red { background: linear-gradient(90deg, #ff4d4d, #b30000); }
+    .progress-green { background: linear-gradient(90deg, #4ade80, #166534); }
+    .pulse { animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0,0,0,0.4); } 70% { box-shadow: 0 0 0 20px rgba(0,0,0,0); } 100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); } }
+  </style>
+</head>
+<body class="pb-32 pt-28 md:pt-24">
+
+  <nav class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 p-4 flex flex-wrap justify-between items-center gap-3">
+    <div class="font-bold text-xl tracking-tight text-gray-900">GROWTHX<span class="text-gray-400 font-normal ml-2 text-lg hidden sm:inline">AI 文章營銷經理</span></div>
+    <div class="space-x-2 flex flex-wrap gap-2">
+      <button onclick="openSearchModal()" class="flex items-center text-sm bg-gray-100 text-gray-800 px-4 py-2 rounded-full font-semibold hover:bg-gray-200 transition">
+        <span class="material-icons text-[18px] mr-1">history</span>讀取歷史
+      </button>
+      <button onclick="saveToDatabase()" class="flex items-center text-sm bg-gray-100 text-gray-800 px-4 py-2 rounded-full font-semibold hover:bg-gray-200 transition">
+        <span class="material-icons text-[18px] mr-1">save</span>儲存
+      </button>
+      <button onclick="resetApp()" class="flex items-center text-sm bg-gray-100 text-gray-800 px-4 py-2 rounded-full font-semibold hover:bg-red-50 hover:text-red-600 transition">
+        <span class="material-icons text-[18px] mr-1">refresh</span>清空重置
+      </button>
+    </div>
+  </nav>
+
+  <div class="max-w-4xl mx-auto px-4 md:px-6">
+    <div id="systemToast" class="hidden fixed top-24 left-1/2 transform -translate-x-1/2 z-50 bg-gray-900 text-white px-6 py-3 rounded-full shadow-lg font-semibold text-sm transition-opacity duration-300 w-11/12 max-w-md text-center"></div>
+
+    <div id="step1" class="step-section bg-white p-8 rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-gray-100 mb-8">
+      <h2 class="text-2xl font-bold mb-6 text-gray-900 flex items-center">
+        <span class="material-icons mr-2 text-gray-400">looks_one</span> 抓取對標與時事引言生成
+      </h2>
+      <div class="mb-5">
+        <div class="flex justify-between items-end mb-2 flex-wrap gap-2">
+  <label class="block font-bold text-sm">🎬 YouTube 逐字稿 (對標影片)</label>
+  <a href="https://colab.research.google.com/drive/1xFxIM0zwJaK1D7mBn94GciXj9Ks0eBqc?usp=sharing" target="_blank" class="text-xs font-bold bg-red-50 text-red-600 px-3 py-1.5 rounded hover:bg-red-100 transition shadow-sm inline-flex items-center">
+    ▶️ 使用 YT 解析器獲取逐字稿
+  </a>
+</div>
+        <textarea id="transcript" class="w-full p-3 border border-gray-300 rounded-xl bg-gray-50/50" placeholder="貼上對標影片逐字稿..."></textarea>
+      </div>
+      <div class="mb-8">
+        <div class="flex justify-between items-center mb-2">
+          <label class="block font-semibold text-sm text-gray-700 flex items-center">
+            <span class="material-icons text-[18px] mr-1">link</span> 相關文章對標網址
+          </label>
+          <button onclick="addUrlInput()" class="text-xs font-semibold bg-gray-50 text-gray-600 border px-3 py-1.5 rounded-lg hover:bg-gray-100 transition flex items-center">
+            <span class="material-icons text-[16px] mr-1">add</span> 新增
+          </button>
+        </div>
+        <div id="urlContainer" class="flex flex-col space-y-3"></div>
+      </div>
+      <button onclick="runStep1()" class="w-full bg-[#1d1d1f] text-white font-semibold py-4 rounded-xl shadow-sm hover:bg-[#333336] transition flex items-center justify-center">
+        <span class="material-icons text-[20px] mr-2">auto_awesome</span> 產出時事共鳴與前導文章
+      </button>
+      
+      <div id="introResult" class="hidden mt-8 pt-6 border-t border-gray-100">
+        <label class="block font-semibold mb-3 text-blue-600 flex items-center">
+          <span class="material-icons text-[18px] mr-1">check_circle</span> 前導文章內容 (可編輯)
+        </label>
+        <textarea id="introText" class="w-full p-4 border border-blue-100 rounded-xl h-64 bg-blue-50/30"></textarea>
+        <button onclick="goStep(2)" class="w-full mt-4 bg-gray-100 text-gray-800 font-semibold py-3 rounded-xl hover:bg-gray-200 transition flex items-center justify-center">
+          確認內容，進入 Step 2 <span class="material-icons text-[18px] ml-1">arrow_forward</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="step2" class="step-section hidden bg-white p-8 rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-gray-100 mb-8">
+      <h2 class="text-2xl font-bold mb-6 text-gray-900 flex items-center">
+        <span class="material-icons mr-2 text-gray-400">looks_two</span> 產業痛點與 GKP 收斂
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+        <div>
+          <label class="block font-semibold mb-2 text-sm text-gray-700 flex items-center">
+            <span class="material-icons text-[18px] mr-1">gps_fixed</span> 產業 / 產品
+          </label>
+          <input type="text" id="industry" class="w-full p-3 border border-gray-300 rounded-xl bg-gray-50/50" placeholder="例如：AI 自動化導入...">
+        </div>
+        <div>
+          <label class="block font-semibold mb-2 text-sm text-gray-700 flex items-center">
+            <span class="material-icons text-[18px] mr-1">error_outline</span> 客戶痛點 / 情境
+          </label>
+          <input type="text" id="painPoint" class="w-full p-3 border border-gray-300 rounded-xl bg-gray-50/50" placeholder="例如：營運成本高...">
+        </div>
+      </div>
+      <button onclick="runStep2()" class="w-full bg-[#1d1d1f] text-white font-semibold py-4 rounded-xl shadow-sm hover:bg-[#333336] transition flex items-center justify-center">
+        <span class="material-icons text-[20px] mr-2">search</span> 萃取推薦關鍵字
+      </button>
+      
+      <div id="gkpSection" class="hidden mt-10 pt-8 border-t border-gray-100">
+        <div class="bg-gray-50 p-6 rounded-2xl mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div>
+            <h3 class="font-bold text-gray-900 text-lg flex items-center"><span class="material-icons text-[20px] mr-1 text-gray-500">analytics</span> GKP 數據對校</h3>
+            <p class="text-sm text-gray-500 mt-1">點擊複製 AI 關鍵字並前往 Google Keyword Planner。</p>
+          </div>
+          <button id="copyGKPBtn" onclick="copyAndOpenGKP()" class="bg-[#0071e3] hover:bg-[#005bb5] text-white font-semibold py-2.5 px-5 rounded-xl shadow-sm transition flex items-center">
+            <span class="material-icons text-[18px] mr-1">content_copy</span> 複製並開啟
+          </button>
+        </div>
+        
+        <div class="mb-8">
+          <label class="block font-semibold mb-2 text-sm text-gray-700 flex items-center">
+            <span class="material-icons text-[18px] mr-1">download</span> 貼上 GKP 數據
+          </label>
+          <textarea id="gkpPasteArea" class="w-full h-32 rounded-xl border-gray-300 p-3 border text-sm mb-4 bg-gray-50/50" placeholder="從 GKP 複製表格後貼於此處..."></textarea>
+          <div id="gkpPreviewWrapper" class="hidden mb-4 custom-scrollbar overflow-x-auto border border-gray-200 rounded-xl"><table class="min-w-full text-xs text-left"><thead class="bg-gray-50"><tr id="gkpPreviewHeaders"></tr></thead><tbody id="gkpPreviewBody" class="divide-y divide-gray-100"></tbody></table></div>
+          <button onclick="analyzeGKPDataFlow()" class="w-full bg-gray-800 text-white font-semibold py-4 rounded-xl hover:bg-gray-900 transition flex items-center justify-center">
+            <span class="material-icons text-[20px] mr-2">sort</span> 產生演算法排行
+          </button>
+        </div>
+
+        <div id="gkpAnalyzedResults" class="hidden mt-8 pt-8 border-t border-gray-100">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold text-gray-900 flex items-center"><span class="material-icons text-[20px] mr-1 text-blue-500">diamond</span> 勾選主打關鍵字</h2>
+            <span class="text-sm text-gray-500 font-semibold bg-gray-100 px-3 py-1 rounded-full">已選 <span id="kwCount" class="text-blue-600">0</span> 項</span>
+          </div>
+          <div id="gkpCardsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+        </div>
+
+        <button id="nextTo3" onclick="goStep(3)" class="hidden w-full mt-8 bg-gray-100 text-gray-800 font-semibold py-4 rounded-xl hover:bg-gray-200 transition flex items-center justify-center">
+          確認勾選，進入 Step 3 <span class="material-icons text-[18px] ml-1">arrow_forward</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="step3" class="step-section hidden bg-white p-8 rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-gray-100 mb-8">
+      <h2 class="text-2xl font-bold mb-6 text-gray-900 flex items-center">
+        <span class="material-icons mr-2 text-gray-400">looks_3</span> 流量密碼提案
+      </h2>
+      <button onclick="runStep3()" class="w-full bg-[#1d1d1f] text-white font-semibold py-4 rounded-xl shadow-sm hover:bg-[#333336] transition flex items-center justify-center">
+        <span class="material-icons text-[20px] mr-2">auto_awesome</span> 生成 10 大提案
+      </button>
+      <div id="proposalsResult" class="hidden mt-8 space-y-4"></div>
+    </div>
+
+    <div id="step4" class="step-section hidden bg-white p-8 rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-gray-100 mb-8">
+      <h2 class="text-2xl font-bold mb-6 text-gray-900 flex items-center">
+        <span class="material-icons mr-2 text-gray-400">looks_4</span> 蘇格拉底深度引導
+      </h2>
+      <p class="text-sm text-gray-500 mb-8">哈佛教授 AI 已為您準備好問題，請填寫血肉內容：</p>
+      
+      <div class="mb-6">
+        <label id="q_saw" class="block font-semibold text-gray-800 mb-2 bg-gray-50 p-4 rounded-xl border border-gray-100 flex items-start">
+          <span class="material-icons text-blue-500 mr-2 mt-0.5 text-[20px]">visibility</span> <span class="leading-relaxed">載入中...</span>
+        </label>
+        <textarea id="mySaw" class="w-full p-4 border border-gray-300 rounded-xl bg-white" placeholder="我的所見所聞..."></textarea>
+      </div>
+      <div class="mb-6">
+        <label id="q_thought" class="block font-semibold text-gray-800 mb-2 bg-gray-50 p-4 rounded-xl border border-gray-100 flex items-start">
+          <span class="material-icons text-green-500 mr-2 mt-0.5 text-[20px]">psychology</span> <span class="leading-relaxed">載入中...</span>
+        </label>
+        <textarea id="myThought" class="w-full p-4 border border-gray-300 rounded-xl bg-white" placeholder="我的所思所想..."></textarea>
+      </div>
+      <div class="mb-6">
+        <label id="q_exp" class="block font-semibold text-gray-800 mb-2 bg-gray-50 p-4 rounded-xl border border-gray-100 flex items-start">
+          <span class="material-icons text-purple-500 mr-2 mt-0.5 text-[20px]">menu_book</span> <span class="leading-relaxed">載入中...</span>
+        </label>
+        <textarea id="myExp" class="w-full p-4 border border-gray-300 rounded-xl bg-white" placeholder="我的親身經歷案例..."></textarea>
+      </div>
+      <div class="mb-8">
+        <label id="q_realization" class="block font-semibold text-gray-800 mb-2 bg-gray-50 p-4 rounded-xl border border-gray-100 flex items-start">
+          <span class="material-icons text-orange-500 mr-2 mt-0.5 text-[20px]">lightbulb</span> <span class="leading-relaxed">載入中...</span>
+        </label>
+        <textarea id="myRealization" class="w-full p-4 border border-gray-300 rounded-xl bg-white" placeholder="我的感觸體認..."></textarea>
+      </div>
+      <button onclick="goStep(5)" class="w-full bg-gray-100 text-gray-800 font-semibold py-4 rounded-xl hover:bg-gray-200 transition flex items-center justify-center">
+        完成作答，進入 Step 5 <span class="material-icons text-[18px] ml-1">arrow_forward</span>
+      </button>
+    </div>
+
+    <div id="step5" class="step-section hidden bg-white p-8 rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-gray-100 mb-8">
+      <h2 class="text-2xl font-bold mb-6 text-gray-900 flex items-center">
+        <span class="material-icons mr-2 text-gray-400">looks_5</span> 結尾與導購產生
+      </h2>
+      <button onclick="runStep5()" class="w-full bg-[#1d1d1f] text-white font-semibold py-4 rounded-xl shadow-sm hover:bg-[#333336] transition flex items-center justify-center mb-8">
+        <span class="material-icons text-[20px] mr-2">auto_awesome</span> 產出祝福與 CTA
+      </button>
+      
+      <div class="mb-5">
+        <label class="block font-semibold mb-2 text-sm text-gray-700 flex items-center">
+          <span class="material-icons text-[18px] mr-1 text-gray-400">card_giftcard</span> 真摯推薦與祝福 (Conclusion)
+        </label>
+        <textarea id="conclusion" class="w-full p-4 border border-gray-300 rounded-xl bg-gray-50/50"></textarea>
+      </div>
+      <div class="mb-8">
+        <label class="block font-semibold mb-2 text-sm text-gray-700 flex items-center">
+          <span class="material-icons text-[18px] mr-1 text-gray-400">ads_click</span> 導購行動呼籲 (CTA)
+        </label>
+        <textarea id="cta" class="w-full p-4 border border-gray-300 rounded-xl bg-gray-50/50"></textarea>
+      </div>
+      <button onclick="runStep6()" class="w-full bg-[#0071e3] text-white font-bold py-4 rounded-xl shadow-md hover:bg-[#005bb5] transition flex items-center justify-center text-lg">
+        <span class="material-icons mr-2">send</span> 套用阿岳語氣，產出爆款長文
+      </button>
+    </div>
+
+    <div id="step6" class="step-section hidden bg-white p-8 rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-gray-100 mb-8">
+      <div class="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
+        <h2 class="text-2xl font-bold text-gray-900 flex items-center">
+          <span class="material-icons mr-2 text-gray-400">looks_6</span> 專屬文章
+        </h2>
+        <button onclick="copyArticle()" class="text-sm bg-gray-100 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 transition flex items-center">
+          <span class="material-icons text-[18px] mr-1">copy_all</span> 一鍵複製
+        </button>
+      </div>
+      <div id="finalContent" class="prose max-w-none text-gray-800 leading-relaxed bg-[#fbfbfd] p-8 rounded-2xl border border-gray-200"></div>
+    </div>
+  </div>
+
+  <div id="searchModal" class="hidden fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+        <h3 class="text-lg font-bold text-gray-900 flex items-center"><span class="material-icons mr-2">folder_open</span> 讀取知識庫</h3>
+        <button onclick="closeSearchModal()" class="text-gray-400 hover:text-gray-800 transition"><span class="material-icons">close</span></button>
+      </div>
+      <div class="p-5 border-b border-gray-100 flex flex-wrap gap-4 items-end bg-white">
+        <div class="flex-1 min-w-[200px]">
+          <label class="block text-xs font-semibold mb-1 text-gray-500">關鍵字 (標題/產業/痛點)</label>
+          <input type="text" id="searchKw" class="w-full p-2.5 border border-gray-300 rounded-xl focus:border-blue-500" placeholder="搜尋...">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1 text-gray-500">開始日期</label>
+          <input type="date" id="searchStart" class="w-full p-2.5 border border-gray-300 rounded-xl text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1 text-gray-500">結束日期</label>
+          <input type="date" id="searchEnd" class="w-full p-2.5 border border-gray-300 rounded-xl text-sm">
+        </div>
+        <button onclick="executeSearch()" class="bg-[#1d1d1f] text-white font-semibold px-6 py-2.5 rounded-xl hover:bg-[#333336] transition">搜尋</button>
+      </div>
+      <div class="p-5 overflow-y-auto custom-scrollbar flex-1 bg-gray-50">
+        <div id="searchResults" class="space-y-3 text-sm">
+          <p class="text-gray-400 text-center py-10 font-medium">請設定條件並點擊搜尋</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="globalLoading" class="hidden fixed inset-0 bg-white/70 backdrop-blur-md z-[100] flex flex-col justify-center items-center">
+    <div class="loader rounded-full border-4 border-t-4 border-gray-200 h-14 w-14 mb-4"></div>
+    <p id="loadingText" class="text-gray-800 font-semibold text-sm tracking-wide">運算中...</p>
+  </div>
+
+  <script>
+    // 👇👇👇【請修改這裡】貼上你的 Google Apps Script 網頁應用程式 URL 👇👇👇
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbysvtZFD4E_6FkfMOyYxJmy0Y_8AVBnC4u3Gyrrl9TwBbCOFCIMxppQW_8kPVJlMxYA/exec"; 
+    // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
+
+    let state = {
+      recordId: "", urls: [""], transcript: "", introText: "", industry: "", painPoint: "", 
+      aiKeywords: [], gkpPasteArea: "", parsedGKPData: [], globalGkpData: [], selectedKeywordsList: [],
+      proposalsList: [], proposal: null, mySaw: "", myThought: "", myExp: "", myRealization: "",
+      conclusion: "", cta: "", finalHtml: ""
+    };
+    
+    let currentSearchResults = [];
+
+    async function runGasFunction(actionName, payload) {
+      try {
+        let response = await fetch(GAS_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: actionName, params: payload })
+        });
+        if (!response.ok) throw new Error('伺服器連線失敗');
+        let data = await response.json();
+        if (data.error) throw new Error(data.error);
+        return data;
+      } catch (err) { throw err; }
+    }
+
+    function loadLocal() {
+      let saved = localStorage.getItem('troy_eeat_system');
+      if(saved) {
+        try {
+          let parsed = JSON.parse(saved);
+          state = Object.assign(state, parsed);
+          ['transcript', 'introText', 'industry', 'painPoint', 'gkpPasteArea', 'mySaw', 'myThought', 'myExp', 'myRealization', 'conclusion', 'cta'].forEach(id => {
+            let el = document.getElementById(id); if(el && state[id]) el.value = state[id];
+          });
+          if(state.introText) document.getElementById('introResult').classList.remove('hidden');
+          if(state.finalHtml) document.getElementById('finalContent').innerHTML = state.finalHtml;
+          if(state.urls && state.urls.length > 0) renderUrlInputs();
+        } catch(e) { console.error("快取讀取失敗", e); }
+      }
+    }
+
+    function renderUrlInputs() {
+      const container = document.getElementById('urlContainer');
+      if (state.urls.length === 0) state.urls = [""];
+      container.innerHTML = state.urls.map((u, i) => `
+        <div class="flex items-center space-x-2 w-full">
+          <input type="text" class="url-input flex-1 p-3 border border-gray-300 rounded-xl bg-gray-50/50" placeholder="https://..." value="${u}" oninput="updateUrlState()">
+          ${state.urls.length > 1 ? `<button onclick="removeUrlInput(${i})" class="text-gray-400 hover:text-red-500 bg-white border border-gray-200 px-3 py-3 rounded-xl transition shadow-sm flex-shrink-0 flex items-center justify-center"><span class="material-icons text-[20px]">delete_outline</span></button>` : `<button class="text-gray-200 bg-gray-50 border border-gray-100 px-3 py-3 rounded-xl cursor-not-allowed flex-shrink-0 flex items-center justify-center" disabled><span class="material-icons text-[20px]">delete_outline</span></button>`}
+        </div>
+      `).join('');
+    }
+
+    function addUrlInput() { state.urls.push(""); renderUrlInputs(); }
+    function removeUrlInput(index) { state.urls.splice(index, 1); renderUrlInputs(); }
+    function updateUrlState() { state.urls = Array.from(document.querySelectorAll('.url-input')).map(inp => inp.value); }
+
+    function saveLocal() {
+      ['transcript', 'introText', 'industry', 'painPoint', 'gkpPasteArea', 'mySaw', 'myThought', 'myExp', 'myRealization', 'conclusion', 'cta'].forEach(id => {
+        let el = document.getElementById(id); if(el) state[id] = el.value;
+      });
+      updateUrlState();
+      localStorage.setItem('troy_eeat_system', JSON.stringify(state));
+    }
+
+    // 優化重置功能：無確認視窗、直接手動清空 DOM 與 State，確保絕不會當機白屏
+    function resetApp() {
+      localStorage.removeItem('troy_eeat_system');
+      
+      // 1. 初始化狀態
+      state = {
+        recordId: "", urls: [""], transcript: "", introText: "", industry: "", painPoint: "", 
+        aiKeywords: [], gkpPasteArea: "", parsedGKPData: [], globalGkpData: [], selectedKeywordsList: [],
+        proposalsList: [], proposal: null, mySaw: "", myThought: "", myExp: "", myRealization: "",
+        conclusion: "", cta: "", finalHtml: ""
+      };
+
+      // 2. 清空輸入框
+      ['transcript', 'introText', 'industry', 'painPoint', 'gkpPasteArea', 'mySaw', 'myThought', 'myExp', 'myRealization', 'conclusion', 'cta'].forEach(id => {
+        let el = document.getElementById(id); if(el) el.value = "";
+      });
+      document.getElementById('searchKw').value = "";
+      document.getElementById('searchStart').value = "";
+      document.getElementById('searchEnd').value = "";
+
+      // 3. 隱藏不必要的區塊
+      document.getElementById('introResult').classList.add('hidden');
+      document.getElementById('gkpSection').classList.add('hidden');
+      document.getElementById('gkpAnalyzedResults').classList.add('hidden');
+      document.getElementById('nextTo3').classList.add('hidden');
+      document.getElementById('gkpPreviewWrapper').classList.add('hidden');
+      document.getElementById('step2').classList.add('hidden');
+      document.getElementById('step3').classList.add('hidden');
+      document.getElementById('step4').classList.add('hidden');
+      document.getElementById('step5').classList.add('hidden');
+      document.getElementById('step6').classList.add('hidden');
+
+      // 4. 清空生成內容與列表
+      document.getElementById('finalContent').innerHTML = "";
+      document.getElementById('proposalsResult').innerHTML = "";
+      document.getElementById('gkpCardsContainer').innerHTML = "";
+      document.getElementById('kwCount').innerText = "0";
+      
+      // 5. 重繪 URL
+      renderUrlInputs();
+
+      // 6. 滾動回頂部並提示
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      showToast('系統已完全重置');
+    }
+
+    async function saveToDatabase() {
+      saveLocal(); 
+      showLoad('正在同步資料...');
+      try {
+        let res = await runGasFunction('syncDatabase', state);
+        state.recordId = res.recordId; 
+        saveLocal();
+        showToast('儲存成功');
+      } catch(err) { showToast('儲存失敗：' + err.message, true); } 
+      finally { hideLoad(); }
+    }
+
+    function openSearchModal() { document.getElementById('searchModal').classList.remove('hidden'); }
+    function closeSearchModal() { document.getElementById('searchModal').classList.add('hidden'); }
+    
+    async function executeSearch() {
+      let keyword = document.getElementById('searchKw').value;
+      let startDate = document.getElementById('searchStart').value;
+      let endDate = document.getElementById('searchEnd').value;
+      document.getElementById('searchResults').innerHTML = '<p class="text-blue-600 text-center py-10 font-semibold animate-pulse">搜尋中...</p>';
+      try {
+        let res = await runGasFunction('searchDatabase', { keyword, startDate, endDate });
+        currentSearchResults = res.results;
+        if (currentSearchResults.length === 0) {
+          document.getElementById('searchResults').innerHTML = '<p class="text-gray-400 text-center py-10">無符合紀錄。</p>';
+          return;
+        }
+        document.getElementById('searchResults').innerHTML = currentSearchResults.map((row, i) => `
+          <div class="border border-gray-200 rounded-xl p-4 bg-white shadow-sm flex flex-col md:flex-row justify-between md:items-center gap-3">
+            <div class="flex-1">
+              <div class="font-bold text-gray-900 text-base mb-1">${row['提案標題'] || '未命名草稿'}</div>
+              <div class="text-xs text-gray-500 mb-1">更新：${row['更新時間']} | 產業：${row['產業']}</div>
+              <div class="text-xs text-blue-600 font-medium truncate max-w-lg">標籤：${row['選定關鍵字']}</div>
+            </div>
+            <button onclick="loadRecordToUI(${i})" class="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 transition whitespace-nowrap">載入</button>
+          </div>
+        `).join('');
+      } catch (err) {
+        document.getElementById('searchResults').innerHTML = `<p class="text-red-500 text-center py-10">發生錯誤：${err.message}</p>`;
+      }
+    }
+
+    function loadRecordToUI(index) {
+      let record = currentSearchResults[index];
+      state.recordId = record['記錄ID'];
+      state.industry = record['產業'];
+      state.painPoint = record['痛點'];
+      state.introText = record['前導文章'];
+      state.mySaw = record['所見所聞'];
+      state.myThought = record['所思所想'];
+      state.myExp = record['親身經歷'];
+      state.myRealization = record['感觸體認'];
+      state.conclusion = record['結語'];
+      state.cta = record['CTA'];
+      state.finalHtml = record['最終文章HTML'];
+      state.selectedKeywordsList = record['選定關鍵字'] ? record['選定關鍵字'].split(', ') : [];
+      state.proposal = { title: record['提案標題'], summary: "已從歷史紀錄載入" };
+
+      ['industry', 'painPoint', 'introText', 'mySaw', 'myThought', 'myExp', 'myRealization', 'conclusion', 'cta'].forEach(id => {
+        document.getElementById(id).value = state[id];
+      });
+      
+      document.getElementById('introResult').classList.remove('hidden');
+      if (state.finalHtml) {
+        document.getElementById('finalContent').innerHTML = state.finalHtml;
+        goStep(6);
+      } else {
+        goStep(1); 
+      }
+      
+      saveLocal(); closeSearchModal();
+      showToast('紀錄已載入');
+    }
+
+    function showLoad(msg) { document.getElementById('loadingText').innerText = msg; document.getElementById('globalLoading').classList.remove('hidden'); }
+    function hideLoad() { document.getElementById('globalLoading').classList.add('hidden'); }
+    function showToast(msg, isErr=false) {
+      let t = document.getElementById('systemToast'); t.innerText = msg;
+      t.className = `fixed top-24 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-full shadow-lg font-semibold text-sm transition-opacity duration-300 w-11/12 max-w-md text-center text-white ${isErr?'bg-red-500':'bg-gray-900'}`;
+      t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 3000);
+    }
+    function goStep(num) {
+      document.getElementById('step' + num).classList.remove('hidden');
+      window.scrollTo({ top: document.getElementById('step' + num).offsetTop - 80, behavior: 'smooth' });
+    }
+
+    async function runStep1() {
+      saveLocal(); showLoad('分析中...');
+      try {
+        let res = await runGasFunction('step1_GenerateIntro', state);
+        document.getElementById('introText').value = res.introText;
+        document.getElementById('introResult').classList.remove('hidden');
+        saveLocal();
+      } catch(err) { showToast(err.message, true); } finally { hideLoad(); }
+    }
+
+    async function runStep2() {
+      saveLocal(); 
+      if(!state.industry || !state.painPoint || !state.introText) return showToast('請填寫產業與痛點', true);
+      showLoad('萃取中...');
+      try {
+        let res = await runGasFunction('step2_GenerateKeywords', state);
+        state.aiKeywords = res.keywords;
+        document.getElementById('gkpSection').classList.remove('hidden');
+        saveLocal();
+        showToast('收斂完成');
+        window.scrollTo({ top: document.getElementById('gkpSection').offsetTop - 80, behavior: 'smooth' });
+      } catch(err) { showToast(err.message, true); } finally { hideLoad(); }
+    }
+
+    function copyAndOpenGKP() {
+      if (!state.aiKeywords || state.aiKeywords.length === 0) return showToast('無關鍵字', true);
+      navigator.clipboard.writeText(state.aiKeywords.join('\r\n')).then(() => {
+        showToast('複製成功，前往 GKP');
+        window.open('[https://ads.google.com/aw/keywordplanner/home](https://ads.google.com/aw/keywordplanner/home)', '_blank');
+      });
+    }
+
+    document.getElementById('gkpPasteArea').addEventListener('input', function(e) {
+      saveLocal();
+      const rawData = e.target.value.trim();
+      const container = document.getElementById('gkpPreviewWrapper');
+      if (!rawData) { container.classList.add('hidden'); state.parsedGKPData = []; return; }
+      const expectedHeaders = ['關鍵字', '平均每月搜尋量', '三個月內的變化', '逐年變化', '競爭程度', '廣告曝光比重', '首頁頂端出價(低價)', '首頁頂端出價(高價)'];
+      let rows = [];
+      if (rawData.indexOf('\t') !== -1) {
+        let rawRows = rawData.split('\n').map(r => r.split('\t'));
+        rows = (rawRows[0][0].includes('關鍵字')) ? rawRows.slice(1) : rawRows;
+      } else {
+        let dataLines = rawData.split('\n').map(l => l.trim()).filter(l => l !== '');
+        for (let i = 0; i < dataLines.length; i += 8) {
+          let chunk = dataLines.slice(i, i + 8);
+          if (chunk.length > 0 && chunk[0] !== '關鍵字') { while(chunk.length < 8) chunk.push(''); rows.push(chunk); }
+        }
+      }
+      if (rows.length === 0) return;
+      document.getElementById('gkpPreviewHeaders').innerHTML = expectedHeaders.map(h => `<th class="px-4 py-3 font-semibold border-r border-gray-200 text-gray-600">${h}</th>`).join('');
+      document.getElementById('gkpPreviewBody').innerHTML = rows.slice(0, 5).map(row => `<tr class="bg-white">` + expectedHeaders.map((_, i) => `<td class="px-4 py-3 whitespace-nowrap border-r border-gray-100 text-gray-700">${row[i] || '-'}</td>`).join('') + `</tr>`).join('');
+      container.classList.remove('hidden');
+      state.parsedGKPData = rows.map(row => { let obj = {}; expectedHeaders.forEach((h, i) => obj[h] = row[i] || ''); return obj; }).filter(obj => obj['關鍵字']); 
+    });
+
+    async function analyzeGKPDataFlow() {
+      if (state.parsedGKPData.length === 0) return showToast('請貼上數據', true);
+      showLoad('運算中...');
+      try {
+        let res = await runGasFunction('step25_analyzeGKP', state);
+        state.globalGkpData = res.gkp_results || [];
+        renderGkpCards();
+        document.getElementById('gkpAnalyzedResults').classList.remove('hidden');
+        document.getElementById('nextTo3').classList.remove('hidden');
+        saveLocal();
+      } catch(err) { showToast(err.message, true); } finally { hideLoad(); }
+    }
+
+    function renderGkpCards() {
+      document.getElementById('gkpCardsContainer').innerHTML = state.globalGkpData.map((item, i) => {
+        let isChk = state.selectedKeywordsList.includes(item.keyword) ? 'checked' : '';
+        return `<label class="relative cursor-pointer block"><input type="checkbox" class="checkbox-custom absolute opacity-0" value="${item.keyword}" onchange="toggleKeyword(this)" ${isChk}><div class="bg-white border-2 border-gray-200 hover:border-blue-400 rounded-xl p-4 flex justify-between items-center transition shadow-sm"><div class="absolute top-4 right-4 check-icon hidden text-blue-600"><span class="material-icons">check_circle</span></div><div><h3 class="text-base font-bold text-gray-900">${item.keyword} <span class="text-xs bg-gray-100 text-gray-500 font-semibold px-2 py-1 rounded ml-2">Top ${i+1}</span></h3><p class="text-xs text-gray-500 mt-1">搜尋量: ${item.metrics.volume} | 競爭: ${item.metrics.competition}</p></div></div></label>`;
+      }).join('');
+    }
+
+    function toggleKeyword(checkbox) {
+      if (checkbox.checked) state.selectedKeywordsList.push(checkbox.value);
+      else state.selectedKeywordsList = state.selectedKeywordsList.filter(k => k !== checkbox.value);
+      document.getElementById('kwCount').innerText = state.selectedKeywordsList.length;
+      saveLocal();
+    }
+
+    async function runStep3() {
+      saveLocal(); 
+      if(state.selectedKeywordsList.length === 0) return showToast('請勾選關鍵字', true);
+      showLoad('生成提案中...');
+      try {
+        let data = await runGasFunction('step3_Proposals', state);
+        state.proposalsList = data.proposals; 
+        document.getElementById('proposalsResult').innerHTML = state.proposalsList.map((p, i) => `
+          <div class="border border-gray-200 p-5 rounded-xl bg-gray-50 hover:border-blue-400 cursor-pointer transition" onclick="selectProposal(${i})">
+            <h4 class="font-bold text-gray-900 text-lg mb-2">${p.title}</h4>
+            <p class="text-sm text-gray-600 mb-3"><strong class="text-gray-800">內容方向：</strong>${p.summary}</p>
+            <button class="mt-2 text-sm bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition flex items-center">選擇提案 <span class="material-icons text-[16px] ml-1">arrow_forward</span></button>
+          </div>
+        `).join('');
+        document.getElementById('proposalsResult').classList.remove('hidden');
+      } catch (err) { showToast(err.message, true); } finally { hideLoad(); }
+    }
+
+    async function selectProposal(index) {
+      state.proposal = state.proposalsList[index]; saveLocal();
+      showLoad('引導生成中...');
+      try {
+        let data = await runGasFunction('step4_Socratic', state);
+        document.getElementById('q_saw').innerHTML = `<span class="material-icons text-blue-500 mr-2 mt-0.5 text-[20px]">visibility</span> <span class="leading-relaxed">${data.questions.q_saw}</span>`;
+        document.getElementById('q_thought').innerHTML = `<span class="material-icons text-green-500 mr-2 mt-0.5 text-[20px]">psychology</span> <span class="leading-relaxed">${data.questions.q_thought}</span>`;
+        document.getElementById('q_exp').innerHTML = `<span class="material-icons text-purple-500 mr-2 mt-0.5 text-[20px]">menu_book</span> <span class="leading-relaxed">${data.questions.q_exp}</span>`;
+        document.getElementById('q_realization').innerHTML = `<span class="material-icons text-orange-500 mr-2 mt-0.5 text-[20px]">lightbulb</span> <span class="leading-relaxed">${data.questions.q_realization}</span>`;
+        goStep(4);
+      } catch (err) { showToast(err.message, true); } finally { hideLoad(); }
+    }
+
+    async function runStep5() {
+      saveLocal(); showLoad('撰寫中...');
+      try {
+        let data = await runGasFunction('step5_CTA', state);
+        document.getElementById('conclusion').value = data.conclusion;
+        document.getElementById('cta').value = data.cta;
+        saveLocal(); showToast('結語生成成功');
+      } catch (err) { showToast(err.message, true); } finally { hideLoad(); }
+    }
+
+    async function runStep6() {
+      saveLocal(); 
+      showLoad('組裝長文中...');
+      try {
+        let data = await runGasFunction('step6_FinalBlog', state);
+        state.finalHtml = data.html; 
+        document.getElementById('finalContent').innerHTML = data.html;
+        goStep(6); 
+        await saveToDatabase();
+      } catch (err) { showToast(err.message, true); } finally { hideLoad(); }
+    }
+
+    function copyArticle() {
+      let div = document.getElementById('finalContent');
+      let range = document.createRange(); range.selectNodeContents(div);
+      let sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      document.execCommand('copy'); sel.removeAllRanges();
+      showToast('已複製！');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { 
+      loadLocal(); 
+      if(state.urls.length === 0) renderUrlInputs(); 
+    });
+  </script>
+</body>
+</html>
