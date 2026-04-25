@@ -41,11 +41,11 @@
       </h2>
       <div class="mb-5">
         <div class="flex justify-between items-end mb-2 flex-wrap gap-2">
-  <label class="block font-bold text-sm">🎬 YouTube 逐字稿 (對標影片)</label>
-  <a href="https://colab.research.google.com/drive/1xFxIM0zwJaK1D7mBn94GciXj9Ks0eBqc?usp=sharing" target="_blank" class="text-xs font-bold bg-red-50 text-red-600 px-3 py-1.5 rounded hover:bg-red-100 transition shadow-sm inline-flex items-center">
-    ▶️ 使用 YT 解析器獲取逐字稿
-  </a>
-</div>
+          <label class="block font-bold text-sm">🎬 YouTube 逐字稿 (對標影片)</label>
+          <a href="https://colab.research.google.com/drive/1xFxIM0zwJaK1D7mBn94GciXj9Ks0eBqc?usp=sharing" target="_blank" class="text-xs font-bold bg-red-50 text-red-600 px-3 py-1.5 rounded hover:bg-red-100 transition shadow-sm inline-flex items-center">
+            ▶️ 使用 YT 解析器獲取逐字稿
+          </a>
+        </div>
         <textarea id="transcript" class="w-full p-3 border border-gray-300 rounded-xl bg-gray-50/50" placeholder="貼上對標影片逐字稿..."></textarea>
       </div>
       <div class="mb-8">
@@ -207,12 +207,60 @@
         <h2 class="text-2xl font-bold text-gray-900 flex items-center">
           <span class="material-icons mr-2 text-gray-400">looks_6</span> 專屬文章
         </h2>
-        <button onclick="copyArticle()" class="text-sm bg-gray-100 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 transition flex items-center">
+        <button onclick="copyContent('finalContent')" class="text-sm bg-gray-100 text-gray-800 px-4 py-2 rounded-lg font-semibold hover:bg-gray-200 transition flex items-center">
           <span class="material-icons text-[18px] mr-1">copy_all</span> 一鍵複製
         </button>
       </div>
       <div id="finalContent" class="prose prose-lg max-w-none text-gray-800 leading-relaxed bg-[#fbfbfd] p-8 rounded-2xl border border-gray-200"></div>
+      
+      <button id="nextTo7" onclick="goStep(7)" class="hidden w-full mt-8 bg-gray-100 text-gray-800 font-semibold py-4 rounded-xl hover:bg-gray-200 transition flex items-center justify-center">
+        確認文章，進入 Step 7 產出社群圖文 <span class="material-icons text-[18px] ml-1">arrow_forward</span>
+      </button>
     </div>
+
+    <div id="step7" class="step-section hidden bg-white p-8 rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-gray-100 mb-8">
+      <h2 class="text-2xl font-bold mb-6 text-gray-900 flex items-center">
+        <span class="material-icons mr-2 text-gray-400">looks_7</span> 產出社群圖文
+      </h2>
+      
+      <div class="mb-6">
+        <label class="block font-semibold mb-2 text-sm text-gray-700 flex items-center">
+          <span class="material-icons text-[18px] mr-1 text-gray-400">edit_document</span> 最終產出的文章 (用於生成社群圖文，可自由編輯)
+        </label>
+        <textarea id="finalArticleText" class="w-full p-4 border border-gray-300 rounded-xl h-64 bg-gray-50/50" placeholder="這裡會帶入產出後的文章內容..."></textarea>
+      </div>
+
+      <button onclick="runStep7()" class="w-full bg-[#1d1d1f] text-white font-semibold py-4 rounded-xl shadow-sm hover:bg-[#333336] transition flex items-center justify-center mb-8">
+        <span class="material-icons text-[20px] mr-2">auto_awesome</span> 產出社群貼文與輪播圖 Prompts
+      </button>
+
+      <div id="socialResult" class="hidden mt-8 space-y-8">
+        <div>
+          <div class="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
+            <h3 class="text-lg font-bold text-gray-900 flex items-center">
+              <span class="material-icons mr-2 text-blue-500">article</span> 社群貼文 (Phase 1 & 2)
+            </h3>
+            <button onclick="copyContent('socialPostContent')" class="text-xs bg-gray-100 text-gray-800 px-3 py-1.5 rounded-lg font-semibold hover:bg-gray-200 transition flex items-center">
+              <span class="material-icons text-[16px] mr-1">content_copy</span> 複製貼文
+            </button>
+          </div>
+          <div id="socialPostContent" class="prose max-w-none text-gray-800 leading-relaxed bg-[#fbfbfd] p-6 rounded-xl border border-gray-200"></div>
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center border-b border-gray-100 pb-3 mb-4">
+            <h3 class="text-lg font-bold text-gray-900 flex items-center">
+              <span class="material-icons mr-2 text-green-500">image</span> 10頁輪播圖 Prompts (Phase 3)
+            </h3>
+            <button onclick="copyContent('imagePromptsContent')" class="text-xs bg-gray-100 text-gray-800 px-3 py-1.5 rounded-lg font-semibold hover:bg-gray-200 transition flex items-center">
+              <span class="material-icons text-[16px] mr-1">content_copy</span> 複製 Prompts
+            </button>
+          </div>
+          <textarea id="imagePromptsContent" class="w-full p-4 border border-gray-300 rounded-xl h-80 bg-[#fbfbfd] text-sm leading-relaxed" readonly></textarea>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <div id="searchModal" class="hidden fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity">
@@ -258,7 +306,7 @@
       recordId: "", urls: [""], transcript: "", introText: "", industry: "", painPoint: "", 
       aiKeywords: [], gkpPasteArea: "", parsedGKPData: [], globalGkpData: [], selectedKeywordsList: [],
       proposalsList: [], proposal: null, mySaw: "", myThought: "", myExp: "", myRealization: "",
-      conclusion: "", cta: "", finalHtml: ""
+      conclusion: "", cta: "", finalHtml: "", finalArticleText: "", socialPost: "", imagePrompts: ""
     };
     
     let currentSearchResults = [];
@@ -283,12 +331,17 @@
         try {
           let parsed = JSON.parse(saved);
           state = Object.assign(state, parsed);
-          ['transcript', 'introText', 'industry', 'painPoint', 'gkpPasteArea', 'mySaw', 'myThought', 'myExp', 'myRealization', 'conclusion', 'cta'].forEach(id => {
+          ['transcript', 'introText', 'industry', 'painPoint', 'gkpPasteArea', 'mySaw', 'myThought', 'myExp', 'myRealization', 'conclusion', 'cta', 'finalArticleText'].forEach(id => {
             let el = document.getElementById(id); if(el && state[id]) el.value = state[id];
           });
           if(state.introText) document.getElementById('introResult').classList.remove('hidden');
           if(state.finalHtml) document.getElementById('finalContent').innerHTML = state.finalHtml;
           if(state.urls && state.urls.length > 0) renderUrlInputs();
+          if(state.socialPost && state.imagePrompts) {
+            document.getElementById('socialPostContent').innerHTML = state.socialPost;
+            document.getElementById('imagePromptsContent').value = state.imagePrompts;
+            document.getElementById('socialResult').classList.remove('hidden');
+          }
         } catch(e) { console.error("快取讀取失敗", e); }
       }
     }
@@ -309,7 +362,7 @@
     function updateUrlState() { state.urls = Array.from(document.querySelectorAll('.url-input')).map(inp => inp.value); }
 
     function saveLocal() {
-      ['transcript', 'introText', 'industry', 'painPoint', 'gkpPasteArea', 'mySaw', 'myThought', 'myExp', 'myRealization', 'conclusion', 'cta'].forEach(id => {
+      ['transcript', 'introText', 'industry', 'painPoint', 'gkpPasteArea', 'mySaw', 'myThought', 'myExp', 'myRealization', 'conclusion', 'cta', 'finalArticleText'].forEach(id => {
         let el = document.getElementById(id); if(el) state[id] = el.value;
       });
       updateUrlState();
@@ -323,10 +376,10 @@
         recordId: "", urls: [""], transcript: "", introText: "", industry: "", painPoint: "", 
         aiKeywords: [], gkpPasteArea: "", parsedGKPData: [], globalGkpData: [], selectedKeywordsList: [],
         proposalsList: [], proposal: null, mySaw: "", myThought: "", myExp: "", myRealization: "",
-        conclusion: "", cta: "", finalHtml: ""
+        conclusion: "", cta: "", finalHtml: "", finalArticleText: "", socialPost: "", imagePrompts: ""
       };
 
-      ['transcript', 'introText', 'industry', 'painPoint', 'gkpPasteArea', 'mySaw', 'myThought', 'myExp', 'myRealization', 'conclusion', 'cta'].forEach(id => {
+      ['transcript', 'introText', 'industry', 'painPoint', 'gkpPasteArea', 'mySaw', 'myThought', 'myExp', 'myRealization', 'conclusion', 'cta', 'finalArticleText', 'imagePromptsContent'].forEach(id => {
         let el = document.getElementById(id); if(el) el.value = "";
       });
       document.getElementById('searchKw').value = "";
@@ -343,10 +396,14 @@
       document.getElementById('step4').classList.add('hidden');
       document.getElementById('step5').classList.add('hidden');
       document.getElementById('step6').classList.add('hidden');
+      document.getElementById('step7').classList.add('hidden');
+      document.getElementById('socialResult').classList.add('hidden');
+      document.getElementById('nextTo7').classList.add('hidden');
 
       document.getElementById('finalContent').innerHTML = "";
       document.getElementById('proposalsResult').innerHTML = "";
       document.getElementById('gkpCardsContainer').innerHTML = "";
+      document.getElementById('socialPostContent').innerHTML = "";
       document.getElementById('kwCount').innerText = "0";
       
       renderUrlInputs();
@@ -420,7 +477,15 @@
       document.getElementById('introResult').classList.remove('hidden');
       if (state.finalHtml) {
         document.getElementById('finalContent').innerHTML = state.finalHtml;
+        
+        // 確保讀取紀錄時，也能正確還原純文字版本的文章供 Step 7 使用
+        let tempDiv = document.createElement('div');
+        tempDiv.innerHTML = state.finalHtml;
+        state.finalArticleText = tempDiv.innerText;
+        document.getElementById('finalArticleText').value = state.finalArticleText;
+        
         goStep(6);
+        document.getElementById('nextTo7').classList.remove('hidden');
       } else {
         goStep(1); 
       }
@@ -469,7 +534,6 @@
       if (!state.aiKeywords || state.aiKeywords.length === 0) return showToast('無關鍵字', true);
       navigator.clipboard.writeText(state.aiKeywords.join('\r\n')).then(() => {
         showToast('複製成功，前往 GKP');
-        // 💡 修正了開啟 GKP 的網址格式
         window.open('https://ads.google.com/aw/keywordplanner/home', '_blank');
       });
     }
@@ -573,17 +637,53 @@
         let data = await runGasFunction('step6_FinalBlog', state);
         state.finalHtml = data.html; 
         document.getElementById('finalContent').innerHTML = data.html;
+        
+        // 將 HTML 轉為純文字，填入 Step 7 的編輯窗格中
+        let tempDiv = document.createElement('div');
+        tempDiv.innerHTML = data.html;
+        state.finalArticleText = tempDiv.innerText;
+        document.getElementById('finalArticleText').value = state.finalArticleText;
+
         goStep(6); 
+        document.getElementById('nextTo7').classList.remove('hidden');
         await saveToDatabase();
       } catch (err) { showToast(err.message, true); } finally { hideLoad(); }
     }
 
-    function copyArticle() {
-      let div = document.getElementById('finalContent');
-      let range = document.createRange(); range.selectNodeContents(div);
-      let sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
-      document.execCommand('copy'); sel.removeAllRanges();
-      showToast('已複製！可直接貼上方格子');
+    // 💡 執行 Step 7：產出社群圖文與 10 頁輪播圖 Prompt
+    async function runStep7() {
+      saveLocal();
+      if (!state.finalArticleText) return showToast('請先確認有文章內容', true);
+      showLoad('生成社群圖文中...');
+      try {
+        let data = await runGasFunction('step7_SocialMedia', state);
+        state.socialPost = data.social_post;
+        state.imagePrompts = data.image_prompts;
+        document.getElementById('socialPostContent').innerHTML = data.social_post;
+        document.getElementById('imagePromptsContent').value = data.image_prompts;
+        document.getElementById('socialResult').classList.remove('hidden');
+        saveLocal();
+        showToast('社群圖文生成成功！');
+        window.scrollTo({ top: document.getElementById('socialResult').offsetTop - 80, behavior: 'smooth' });
+      } catch (err) { showToast(err.message, true); } finally { hideLoad(); }
+    }
+
+    // 💡 共用的一鍵複製功能，可處理 HTML 區塊與 Textarea 內容
+    function copyContent(elementId) {
+      let el = document.getElementById(elementId);
+      if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
+        el.select();
+        document.execCommand('copy');
+      } else {
+        let range = document.createRange();
+        range.selectNodeContents(el);
+        let sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        document.execCommand('copy');
+        sel.removeAllRanges();
+      }
+      showToast('已複製成功！');
     }
 
     document.addEventListener('DOMContentLoaded', () => { 
