@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -211,7 +211,7 @@
           <span class="material-icons text-[18px] mr-1">copy_all</span> 一鍵複製
         </button>
       </div>
-      <div id="finalContent" class="prose max-w-none text-gray-800 leading-relaxed bg-[#fbfbfd] p-8 rounded-2xl border border-gray-200"></div>
+      <div id="finalContent" class="prose prose-lg max-w-none text-gray-800 leading-relaxed bg-[#fbfbfd] p-8 rounded-2xl border border-gray-200"></div>
     </div>
   </div>
 
@@ -316,11 +316,9 @@
       localStorage.setItem('troy_eeat_system', JSON.stringify(state));
     }
 
-    // 優化重置功能：無確認視窗、直接手動清空 DOM 與 State，確保絕不會當機白屏
     function resetApp() {
       localStorage.removeItem('troy_eeat_system');
       
-      // 1. 初始化狀態
       state = {
         recordId: "", urls: [""], transcript: "", introText: "", industry: "", painPoint: "", 
         aiKeywords: [], gkpPasteArea: "", parsedGKPData: [], globalGkpData: [], selectedKeywordsList: [],
@@ -328,7 +326,6 @@
         conclusion: "", cta: "", finalHtml: ""
       };
 
-      // 2. 清空輸入框
       ['transcript', 'introText', 'industry', 'painPoint', 'gkpPasteArea', 'mySaw', 'myThought', 'myExp', 'myRealization', 'conclusion', 'cta'].forEach(id => {
         let el = document.getElementById(id); if(el) el.value = "";
       });
@@ -336,7 +333,6 @@
       document.getElementById('searchStart').value = "";
       document.getElementById('searchEnd').value = "";
 
-      // 3. 隱藏不必要的區塊
       document.getElementById('introResult').classList.add('hidden');
       document.getElementById('gkpSection').classList.add('hidden');
       document.getElementById('gkpAnalyzedResults').classList.add('hidden');
@@ -348,16 +344,13 @@
       document.getElementById('step5').classList.add('hidden');
       document.getElementById('step6').classList.add('hidden');
 
-      // 4. 清空生成內容與列表
       document.getElementById('finalContent').innerHTML = "";
       document.getElementById('proposalsResult').innerHTML = "";
       document.getElementById('gkpCardsContainer').innerHTML = "";
       document.getElementById('kwCount').innerText = "0";
       
-      // 5. 重繪 URL
       renderUrlInputs();
 
-      // 6. 滾動回頂部並提示
       window.scrollTo({ top: 0, behavior: 'smooth' });
       showToast('系統已完全重置');
     }
@@ -476,7 +469,8 @@
       if (!state.aiKeywords || state.aiKeywords.length === 0) return showToast('無關鍵字', true);
       navigator.clipboard.writeText(state.aiKeywords.join('\r\n')).then(() => {
         showToast('複製成功，前往 GKP');
-        window.open('[https://ads.google.com/aw/keywordplanner/home](https://ads.google.com/aw/keywordplanner/home)', '_blank');
+        // 💡 修正了開啟 GKP 的網址格式
+        window.open('https://ads.google.com/aw/keywordplanner/home', '_blank');
       });
     }
 
@@ -589,7 +583,7 @@
       let range = document.createRange(); range.selectNodeContents(div);
       let sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
       document.execCommand('copy'); sel.removeAllRanges();
-      showToast('已複製！');
+      showToast('已複製！可直接貼上方格子');
     }
 
     document.addEventListener('DOMContentLoaded', () => { 
